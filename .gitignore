@@ -1,0 +1,3 @@
+# Bỏ qua các file tự sinh của .NET
+[Bb]in/
+[Oo]bj/
