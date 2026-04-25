@@ -4,6 +4,7 @@ using MobileShop.Domain.Entities;
 using MobileShop.Infrastructure.Data;
 using MobileShop.API.DTOs;
 using Microsoft.AspNetCore.Authorization;
+
 namespace MobileShop.API.Controllers.Admin
 {
     [ApiController]
@@ -14,52 +15,46 @@ namespace MobileShop.API.Controllers.Admin
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
 
-        
         public AdminProductController(ApplicationDbContext context, IWebHostEnvironment environment) 
         {
             _context = context;
             _environment = environment;
         }
 
-        // 1. Lấy danh sách Sản phẩm (Kèm theo Biến thể và Tên Danh mục)
+        // 1. Lấy danh sách Sản phẩm
         [HttpGet]
         public async Task<IActionResult> GetAllProducts()
         {
             var products = await _context.Products
                 .Where(p => !p.IsDeleted)
-                .Include(p => p.Category) // Nối bảng để lấy Tên Danh mục
-                .Include(p => p.Variants) // Nối bảng lấy Biến thể
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                .Include(p => p.Images) // NỐI BẢNG THƯ VIỆN ẢNH MỚI
                 .Select(p => new 
                 {
                     p.Id,
                     p.Name,
                     p.BasePrice,
                     CategoryName = p.Category != null ? p.Category.Name : "Không có",
-                    TotalStock = p.Variants.Sum(v => v.StockQuantity), // Tự tính tổng tồn kho
-                    Variants = p.Variants.Select(v => new { v.Color, v.Storage, v.Price, v.StockQuantity,v.ImageUrl })
+                    TotalStock = p.Variants.Sum(v => v.StockQuantity),
+                    Variants = p.Variants.Select(v => new { v.Color, v.Storage, v.Price, v.StockQuantity, v.ImageUrl }),
+                    Images = p.Images.Select(i => i.ImageUrl).ToList() // TRẢ VỀ MẢNG URL ẢNH
                 })
                 .ToListAsync();
 
             return Ok(products);
         }
 
-        // 2. Thêm mới Sản phẩm (Kèm Biến thể và Thông số)
+        // 2. Thêm mới Sản phẩm
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] ProductCreateDto dto)
         {
             var isDuplicate = await _context.Products.AnyAsync(p => p.Name == dto.Name && !p.IsDeleted);
-            if (isDuplicate) 
-            {
-                return BadRequest("Tên sản phẩm này đã tồn tại trong hệ thống.");
-            }
-            // Kiểm tra xem CategoryId có tồn tại trong DB không
-            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId && !c.IsDeleted);
-            if (!categoryExists)
-            {
-                return BadRequest("Danh mục không tồn tại.");
-            }
+            if (isDuplicate) return BadRequest("Tên sản phẩm này đã tồn tại trong hệ thống.");
 
-            // Map từ DTO sang Entity chính
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId && !c.IsDeleted);
+            if (!categoryExists) return BadRequest("Danh mục không tồn tại.");
+
             var newProduct = new Product
             {
                 Name = dto.Name,
@@ -68,7 +63,6 @@ namespace MobileShop.API.Controllers.Admin
                 Description = dto.Description,
                 IsDeleted = false,
                 
-                // EF Core rất thông minh, nó sẽ tự động map các List con này và tạo Khóa ngoại (ProductId)
                 Variants = dto.Variants.Select(v => new ProductVariant
                 {
                     Color = v.Color,
@@ -78,44 +72,50 @@ namespace MobileShop.API.Controllers.Admin
                     ImageUrl = v.ImageUrl
                 }).ToList(),
 
-                Specifications = dto.Specifications.Select(s => new Specification
+                Specifications = dto.Specifications?.Select(s => new Specification
                 {
                     SpecKey = s.SpecKey,
                     SpecValue = s.SpecValue
-                }).ToList()
+                }).ToList() ?? new List<Specification>(),
+
+                // THÊM DỮ LIỆU VÀO BẢNG PRODUCT_IMAGES
+                Images = dto.Images?.Select(url => new ProductImage
+                {
+                    ImageUrl = url
+                }).ToList() ?? new List<ProductImage>()
             };
 
-            // Lưu toàn bộ 3 bảng vào Database chỉ với 2 dòng code
             _context.Products.Add(newProduct);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Thêm sản phẩm thành công!", productId = newProduct.Id });
         }
 
-        //Cập nhật Sản phẩm (PUT)
+        // 3. Cập nhật Sản phẩm
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductCreateDto dto)
         {
-            // Tìm sản phẩm kèm theo các bảng con
             var product = await _context.Products
                 .Include(p => p.Variants)
                 .Include(p => p.Specifications)
+                .Include(p => p.Images) // BAO GỒM CẢ BẢNG ẢNH
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null || product.IsDeleted) 
                 return NotFound("Không tìm thấy sản phẩm.");
 
-            // KIỂM TRA VÀ DỌN RÁC Ổ CỨNG AN TOÀN
+            // Dọn rác ổ cứng an toàn cho Variants
             foreach (var oldVariant in product.Variants)
             {
-                // Kiểm tra xem ảnh cũ này có còn được dùng trong danh sách mới không?
-                // (Nếu dto.Variants không chứa cái link này, nghĩa là Admin đã up ảnh khác thay thế)
                 bool isImageStillUsed = dto.Variants.Any(v => v.ImageUrl == oldVariant.ImageUrl);
-                
-                if (!isImageStillUsed)
-                {
-                    DeletePhysicalFile(oldVariant.ImageUrl); // An tâm xóa
-                }
+                if (!isImageStillUsed) DeletePhysicalFile(oldVariant.ImageUrl);
+            }
+
+            // DỌN RÁC Ổ CỨNG CHO THƯ VIỆN ẢNH (Product_Images)
+            foreach (var oldImage in product.Images)
+            {
+                bool isImageStillUsed = dto.Images != null && dto.Images.Contains(oldImage.ImageUrl);
+                if (!isImageStillUsed) DeletePhysicalFile(oldImage.ImageUrl);
             }
 
             // Cập nhật thông tin cơ bản
@@ -124,9 +124,10 @@ namespace MobileShop.API.Controllers.Admin
             product.BasePrice = dto.BasePrice;
             product.Description = dto.Description;
 
-            // Xử lý các bảng con (Xóa cấu hình cũ - Thêm cấu hình mới)
+            // Xóa cũ thêm mới
             _context.ProductVariants.RemoveRange(product.Variants);
             _context.Specifications.RemoveRange(product.Specifications);
+            _context.ProductImages.RemoveRange(product.Images); // XÓA ẢNH CŨ TRONG DB
 
             product.Variants = dto.Variants.Select(v => new ProductVariant
             {
@@ -137,7 +138,6 @@ namespace MobileShop.API.Controllers.Admin
                 ImageUrl = v.ImageUrl
             }).ToList();
 
-            // Check null để tránh lỗi nếu Frontend chưa code phần Specifications
             if (dto.Specifications != null)
             {
                 product.Specifications = dto.Specifications.Select(s => new Specification
@@ -147,52 +147,46 @@ namespace MobileShop.API.Controllers.Admin
                 }).ToList();
             }
 
+            // INSERT LẠI MẢNG ẢNH MỚI VÀO DB
+            if (dto.Images != null)
+            {
+                product.Images = dto.Images.Select(url => new ProductImage
+                {
+                    ImageUrl = url
+                }).ToList();
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Cập nhật sản phẩm thành công!" });
         }
 
-        //Xóa Sản phẩm (DELETE)
+        // 4. Xóa Sản phẩm
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);
-
             if (product == null || product.IsDeleted)
                 return NotFound("Không tìm thấy sản phẩm.");
 
-            // Đánh dấu xóa mềm
             product.IsDeleted = true;
-            
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Đã xóa sản phẩm thành công." });
         }
 
-        private void DeletePhysicalFile(string? relativePath)
-        {
-            if (string.IsNullOrEmpty(relativePath)) return;
-
-            // Chuyển đường dẫn tương đối (/uploads/abc.jpg) thành đường dẫn tuyệt đối trên ổ đĩa
-            var filePath = Path.Combine(_environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), relativePath.TrimStart('/'));
-
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
-        }
-
+        // 5. Lấy Chi tiết Sản phẩm
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(int id)
         {
             var product = await _context.Products
                 .Include(p => p.Variants)
                 .Include(p => p.Specifications)
+                .Include(p => p.Images) // NỐI BẢNG ẢNH
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
             if (product == null) return NotFound("Không tìm thấy sản phẩm");
 
-            // TẠO MỘT GÓI HÀNG MỚI (Ẩn danh) CHỈ CHỨA DỮ LIỆU CẦN THIẾT
             var result = new 
             {
                 id = product.Id,
@@ -200,7 +194,6 @@ namespace MobileShop.API.Controllers.Admin
                 categoryId = product.CategoryId,
                 description = product.Description,
                 basePrice = product.BasePrice,
-                // Chỉ lấy các trường của Variant, bỏ qua việc tham chiếu ngược lại Product
                 variants = product.Variants.Select(v => new 
                 {
                     id = v.Id,
@@ -210,17 +203,30 @@ namespace MobileShop.API.Controllers.Admin
                     stockQuantity = v.StockQuantity,
                     imageUrl = v.ImageUrl
                 }).ToList(),
-                // Nếu có Specifications thì cũng lấy ra
                 specifications = product.Specifications?.Select(s => new 
                 {
                     specKey = s.SpecKey,
                     specValue = s.SpecValue
-                }).ToList()
+                }).ToList(),
+                
+                // TRẢ VỀ DANH SÁCH ẢNH CHO FRONTEND HIỂN THỊ
+                images = product.Images.Select(i => i.ImageUrl).ToList() 
             };
 
             return Ok(result);
         }
 
+        // Hàm hỗ trợ xóa file vật lý
+        private void DeletePhysicalFile(string? relativePath)
+        {
+            if (string.IsNullOrEmpty(relativePath)) return;
 
+            var filePath = Path.Combine(_environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), relativePath.TrimStart('/'));
+
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+        }
     }
 }

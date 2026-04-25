@@ -27,5 +27,8 @@ namespace MobileShop.Domain.Entities
         // Navigation Property
         [ForeignKey("ProductId")]
         public virtual Product? Product { get; set; }
+
+        public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
     }
 }

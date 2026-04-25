@@ -1,13 +1,23 @@
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
 namespace MobileShop.Domain.Entities
 {
     public class User
     {
+        [Key]
         public int Id { get; set; }
+
+        [Required, MaxLength(100)]
         public string Username { get; set; } = string.Empty;
-        
-        // Tuyệt đối không lưu mật khẩu thật, chỉ lưu chuỗi đã mã hóa
+
+        [Required]
         public string PasswordHash { get; set; } = string.Empty; 
         
-        public string Role { get; set; } = "Admin"; // Phân quyền
+        [Required, MaxLength(20)]
+        public string Role { get; set; } = "Customer"; // Chỉnh mặc định thành Customer
+
+        public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
     }
 }

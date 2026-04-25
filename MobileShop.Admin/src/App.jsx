@@ -8,6 +8,7 @@ import ProductAdd from './pages/ProductAdd';
 import CategoryList from './pages/CategoryList';
 import ProductEdit from './pages/ProductEdit';
 import OrderList from './pages/OrderList';
+import Reviews from './pages/Reviews';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/products/edit/:id" element={<ProductEdit />} />
           <Route path="/categories" element={<CategoryList />} />
           <Route path="/orders" element={<OrderList />} />
+          <Route path="/reviews" element={<Reviews />} />
         </Route>
 
       </Routes>

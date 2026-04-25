@@ -34,5 +34,6 @@ namespace MobileShop.API.DTOs
         // Danh sách biến thể và thông số đi kèm
         public List<VariantCreateDto> Variants { get; set; } = new List<VariantCreateDto>();
         public List<SpecCreateDto> Specifications { get; set; } = new List<SpecCreateDto>();
+        public List<string>? Images { get; set; } = new List<string>();
     }
 }

@@ -33,6 +33,9 @@ function AdminLayout() {
           <li style={{ padding: '10px 0', cursor: 'pointer', borderBottom: '1px solid #34495e' }} onClick={() => navigate('/categories')}>
             🏷️ Quản lý Danh mục
           </li>
+          <li style={{ padding: '10px 0', cursor: 'pointer', borderBottom: '1px solid #34495e' }} onClick={() => navigate('/reviews')}>
+            ⭐ Quản lý Đánh giá
+          </li>
         </ul>
       </div>
 
