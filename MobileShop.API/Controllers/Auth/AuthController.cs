@@ -6,7 +6,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MobileShop.Infrastructure.Data;
 using MobileShop.Domain.Entities;
-using BCrypt.Net; // Thêm thư viện băm mật khẩu
+using BCrypt.Net;
 
 namespace MobileShop.API.Controllers.Auth
 {
@@ -15,7 +15,7 @@ namespace MobileShop.API.Controllers.Auth
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly ApplicationDbContext _context; // Khai báo DB
+        private readonly ApplicationDbContext _context;
 
         public AuthController(IConfiguration configuration, ApplicationDbContext context)
         {
@@ -36,8 +36,8 @@ namespace MobileShop.API.Controllers.Auth
             // Tìm tài khoản trong Database
             var user = await _context.Users.SingleOrDefaultAsync(u => u.Username == request.Username);
             
-            // Nếu không tìm thấy, HOẶC mật khẩu nhập vào (bị băm ra) không khớp với mã băm trong DB
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            // CẬP NHẬT TẤM KHIÊN BẢO VỆ: Kiểm tra thêm user.PasswordHash == null (dành cho tk Google)
+            if (user == null || user.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
                 return Unauthorized("Sai tài khoản hoặc mật khẩu.");
             }
@@ -51,7 +51,7 @@ namespace MobileShop.API.Controllers.Auth
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Role, user.Role) // Lấy quyền thật từ DB
+                    new Claim(ClaimTypes.Role, user.Role) 
                 }),
                 Expires = DateTime.UtcNow.AddHours(2),
                 Issuer = jwtSettings["Issuer"],
@@ -62,14 +62,18 @@ namespace MobileShop.API.Controllers.Auth
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            return Ok(new { token = tokenHandler.WriteToken(token), message = "Đăng nhập thành công" });
+            // ĐÃ SỬA LỖI Ở ĐÂY: Thêm role = user.Role vào cục dữ liệu trả về
+            return Ok(new { 
+                token = tokenHandler.WriteToken(token), 
+                role = user.Role, 
+                message = "Đăng nhập thành công" 
+            });
         }
 
         // 2. API TẠO TÀI KHOẢN ADMIN ĐẦU TIÊN (Dùng 1 lần)
         [HttpPost("setup-admin")]
         public async Task<IActionResult> SetupAdmin()
         {
-            // Kiểm tra xem DB đã có ai chưa, nếu có rồi thì chặn luôn không cho tạo nữa
             if (await _context.Users.AnyAsync()) 
             {
                 return BadRequest("Hệ thống đã có tài khoản, không thể chạy lệnh này nữa.");
@@ -78,8 +82,9 @@ namespace MobileShop.API.Controllers.Auth
             var adminUser = new User 
             {
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"), // Băm mật khẩu trước khi lưu
-                Role = "Admin"
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                Role = "Admin",
+                AuthProvider = "Local" // Cẩn thận set thêm thuộc tính này
             };
 
             _context.Users.Add(adminUser);

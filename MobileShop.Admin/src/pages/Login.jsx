@@ -22,9 +22,17 @@ function Login() {
 
       // Nếu thành công -> Lấy Token cất vào trình duyệt
       const token = response.data.token;
+      const role = response.data.role;
       localStorage.setItem('admin_token', token);
+      localStorage.setItem('admin_role', role);
 
-      alert('Đăng nhập thành công! Chào mừng Admin.');
+      if (role === 'Admin') {
+        alert('Đăng nhập thành công! Chào mừng Admin.');
+      } else {
+          // Lưu ý: chữ 'username' ở đây là tên biến state mà bạn dùng cho ô nhập Tài khoản. 
+          // Nếu bạn đặt tên biến khác (vd: formData.username), hãy sửa lại cho khớp nhé.
+          alert(`Đăng nhập thành công! Xin chào ${username} (${role}).`);
+      }
       
       // Chuyển hướng về trang chủ Dashboard
       navigate('/'); 

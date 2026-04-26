@@ -8,7 +8,7 @@ namespace MobileShop.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/categories")] // Đường dẫn API sẽ là: /api/admin/categories
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public class AdminCategoryController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

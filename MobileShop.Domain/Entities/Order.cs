@@ -32,6 +32,9 @@ namespace MobileShop.Domain.Entities
         public int Status { get; set; } = 0; 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int? UserId { get; set; }
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
 
         // Quan hệ 1-N: 1 Đơn hàng có nhiều Chi tiết đơn hàng
         public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

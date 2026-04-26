@@ -9,6 +9,7 @@ import CategoryList from './pages/CategoryList';
 import ProductEdit from './pages/ProductEdit';
 import OrderList from './pages/OrderList';
 import Reviews from './pages/Reviews';
+import UserList from './pages/UserList';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/categories" element={<CategoryList />} />
           <Route path="/orders" element={<OrderList />} />
           <Route path="/reviews" element={<Reviews />} />
+          <Route path="/users" element={<UserList />} />
         </Route>
 
       </Routes>

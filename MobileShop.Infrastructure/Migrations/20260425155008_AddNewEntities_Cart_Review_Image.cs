@@ -34,12 +34,12 @@ namespace MobileShop.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .OldAnnotation("MySql:CharSet", "utf8mb4");
 
-            // migrationBuilder.AddColumn<string>(
-            //     name: "LogoUrl",
-            //     table: "Categories",
-            //     type: "longtext",
-            //     nullable: true)
-            //     .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(
+                name: "LogoUrl",
+                table: "Categories",
+                type: "longtext",
+                nullable: true)
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Carts",

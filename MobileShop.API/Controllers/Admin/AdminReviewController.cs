@@ -8,7 +8,7 @@ namespace MobileShop.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/reviews")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public class AdminReviewController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

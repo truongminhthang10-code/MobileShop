@@ -8,7 +8,7 @@ namespace MobileShop.API.Controllers.Admin
 
     [ApiController]
     [Route("api/admin/orders")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public class AdminOrderController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

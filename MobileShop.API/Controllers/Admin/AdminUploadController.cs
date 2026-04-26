@@ -4,7 +4,7 @@ namespace MobileShop.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/upload")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public class AdminUploadController : ControllerBase
     {
         private readonly IWebHostEnvironment _environment;
