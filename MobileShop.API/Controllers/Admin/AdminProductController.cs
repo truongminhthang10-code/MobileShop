@@ -22,6 +22,7 @@ namespace MobileShop.API.Controllers.Admin
         }
 
         // 1. Lấy danh sách Sản phẩm
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAllProducts()
         {
@@ -176,6 +177,7 @@ namespace MobileShop.API.Controllers.Admin
         }
 
         // 5. Lấy Chi tiết Sản phẩm
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(int id)
         {

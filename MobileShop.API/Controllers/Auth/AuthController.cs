@@ -29,6 +29,14 @@ namespace MobileShop.API.Controllers.Auth
             public string Password { get; set; } = string.Empty;
         }
 
+        // THÊM MỚI: Class hứng dữ liệu Đăng ký từ Frontend
+        public class RegisterRequest
+        {
+            public string Username { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+            public string? FullName { get; set; } 
+        }
+
         // 1. API ĐĂNG NHẬP VỚI DATABASE THẬT
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -70,7 +78,37 @@ namespace MobileShop.API.Controllers.Auth
             });
         }
 
-        // 2. API TẠO TÀI KHOẢN ADMIN ĐẦU TIÊN (Dùng 1 lần)
+        // 2. THÊM MỚI: API ĐĂNG KÝ TÀI KHOẢN KHÁCH HÀNG
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            // Kiểm tra xem Username đã bị ai đăng ký chưa
+            var isExist = await _context.Users.AnyAsync(u => u.Username == request.Username);
+            if (isExist)
+            {
+                return BadRequest("Tên đăng nhập này đã có người sử dụng!");
+            }
+
+            // Tạo tài khoản mới (Mã hóa mật khẩu bằng BCrypt)
+            var newUser = new User 
+            {
+                Username = request.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                Role = "User", // Mặc định khách tự đăng ký là User thường
+                AuthProvider = "Local",
+                
+                // Lưu ý: Nếu trong file Models/Entities (User.cs) của bạn có chứa cột FullName 
+                // thì bạn có thể mở dấu comment dòng bên dưới ra để lưu tên nhé:
+                // FullName = request.FullName 
+            };
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đăng ký thành công!" });
+        }
+
+        // 3. API TẠO TÀI KHOẢN ADMIN ĐẦU TIÊN (Dùng 1 lần)
         [HttpPost("setup-admin")]
         public async Task<IActionResult> SetupAdmin()
         {

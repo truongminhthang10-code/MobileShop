@@ -22,6 +22,7 @@ namespace MobileShop.API.Controllers.Admin
 
         // 1. API Lấy danh sách tất cả danh mục
         // 1. Lấy danh sách (Trả về CategoryResponseDto)
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAllCategories()
         {

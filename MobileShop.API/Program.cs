@@ -12,20 +12,22 @@ var conectionString = builder.Configuration.GetConnectionString("DefaultConnecti
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(conectionString, ServerVersion.Parse("8.0.30-mysql")));
 
-// 2. THÊM: Kích hoạt tính năng Controllers (Rất quan trọng cho AdminCategoryController)
+// 2. Kích hoạt tính năng Controllers
 builder.Services.AddControllers();
+
+// THÊM: Cấu hình CORS (Chỉ khai báo 1 lần duy nhất ở đây)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Cổng mặc định của React và Vite
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Cho phép React chạy ở cả 2 cổng này
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
-// 3. THÊM: Cấu hình giao diện Swagger
-builder.Services.AddEndpointsApiExplorer();
 
+// 3. Cấu hình giao diện Swagger
+builder.Services.AddEndpointsApiExplorer();
 
 // CẤU HÌNH JWT AUTHENTICATION
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -50,8 +52,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Cấu hình Swagger để nó hiện nút "Authorize" (Cái ổ khóa) cho phép nhập Token
-// Cấu hình Swagger để nó hiện nút "Authorize" (Cái ổ khóa) cho phép nhập Token
+// Cấu hình Swagger để nó hiện nút "Authorize"
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -80,8 +81,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
-
 var app = builder.Build();
 
 // 4. Kích hoạt Swagger UI khi ở môi trường code (Development)
@@ -95,11 +94,13 @@ app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseStaticFiles();
 
-
+// BẬT CORS (Phải nằm trước Authentication và Authorization)
 app.UseCors("AllowReactApp");
+
 app.UseAuthentication(); 
 app.UseAuthorization();
-// 5. THÊM: Kết nối các API (Controllers) vào hệ thống mạng của ứng dụng
+
+// 5. Kết nối các API (Controllers)
 app.MapControllers();
 
 app.Run();
