@@ -12,7 +12,7 @@ function ProductDetail() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(`http://localhost:5293/api/admin/products/${id}`);
+        const response = await axios.get(`http://localhost:5293/api/products/${id}`);
         setProduct(response.data);
       } catch (error) {
         console.error('Lỗi khi tải chi tiết sản phẩm:', error);
@@ -69,17 +69,16 @@ function ProductDetail() {
     <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
       
       {/* CỘT TRÁI: HÌNH ẢNH SẢN PHẨM */}
-      <div style={{ flex: '1 1 400px', textAlign: 'center' }}>
-        {displayImage ? (
-          <img 
-            src={`http://localhost:5293${displayImage}`} 
-            alt={product.name} 
-            style={{ maxWidth: '100%', maxHeight: '450px', objectFit: 'contain', borderRadius: '8px' }} 
-          />
+      <div style={{ height: '400px', backgroundColor: '#f8f9fa', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        {product.images && product.images.length > 0 ? (
+          // Ưu tiên 1: Lấy ảnh trong thư viện chung
+          <img src={`http://localhost:5293${product.images[0]}`} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : product.variants && product.variants.length > 0 && product.variants[0].imageUrl ? (
+          // Ưu tiên 2: Không có ảnh chung thì lấy ảnh của biến thể đầu tiên
+          <img src={`http://localhost:5293${product.variants[0].imageUrl}`} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         ) : (
-          <div style={{ width: '100%', height: '400px', backgroundColor: '#f5f6fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', borderRadius: '8px' }}>
-            Sản phẩm chưa có ảnh
-          </div>
+          // Cuối cùng: Nếu không có cả 2 thì hiện chữ
+          <span style={{ color: '#aaa', fontSize: '18px' }}>Sản phẩm chưa có ảnh</span>
         )}
       </div>
 

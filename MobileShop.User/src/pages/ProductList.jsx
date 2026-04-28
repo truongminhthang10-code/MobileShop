@@ -38,7 +38,7 @@ function ProductList() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5293/api/admin/products');
+        const response = await axios.get('http://localhost:5293/api/products');
         // Đảo ngược mảng để sản phẩm mới thêm lên đầu tiên
         setProducts(response.data.reverse()); 
       } catch (error) {

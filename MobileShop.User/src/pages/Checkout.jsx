@@ -55,11 +55,11 @@ function Checkout() {
     try {
       // 2. GỌI API (Đang bị comment lại vì Backend chưa có hàm này)
       // Khi nào Backend có API, bạn mở comment 2 dòng dưới đây ra và thay đường dẫn
-      /*
+      
       await axios.post('http://localhost:5293/api/public/orders', orderPayload, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('user_token')}` }
       });
-      */
+      
 
       alert(`🎉 ĐẶT HÀNG THÀNH CÔNG!\nCảm ơn ${formData.customerName} đã mua sắm.\nĐơn hàng sẽ được giao đến: ${formData.address}`);
       

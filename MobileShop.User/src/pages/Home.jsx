@@ -44,8 +44,8 @@ function Home() {
     const fetchData = async () => {
       try {
         const [catRes, prodRes] = await Promise.all([
-          axios.get('http://localhost:5293/api/admin/categories'), 
-          axios.get('http://localhost:5293/api/admin/products')    
+          axios.get('http://localhost:5293/api/public/categories'), 
+          axios.get('http://localhost:5293/api/products')    
         ]);
         setCategories(catRes.data);
         setProducts(prodRes.data);

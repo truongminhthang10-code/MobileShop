@@ -20,7 +20,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Cho phép React chạy ở cả 2 cổng này
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173","http://localhost:5174") // Cho phép React chạy ở cả 2 cổng này
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
