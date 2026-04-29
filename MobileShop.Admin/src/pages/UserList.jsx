@@ -91,7 +91,7 @@ function UserList() {
   };
 
   // Lọc danh sách theo Tab
-  const filteredUsers = users.filter(u => activeTab === 'Internal' ? (u.role === 'Admin' || u.role === 'Staff') : u.role === 'Customer');
+  const filteredUsers = users.filter(u => activeTab === 'Internal' ? (u.role === 'Admin' || u.role === 'Staff') : u.role === 'User');
 
   return (
     <div style={{ paddingBottom: '50px' }}>
@@ -113,10 +113,10 @@ function UserList() {
           Nhân viên Nội bộ (Admin/Staff)
         </button>
         <button 
-          onClick={() => setActiveTab('Customer')} 
-          style={{ padding: '10px 20px', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', fontWeight: 'bold', fontSize: '16px', color: activeTab === 'Customer' ? '#2980b9' : '#7f8c8d', borderBottom: activeTab === 'Customer' ? '3px solid #2980b9' : 'none' }}
+          onClick={() => setActiveTab('User')} 
+          style={{ padding: '10px 20px', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', fontWeight: 'bold', fontSize: '16px', color: activeTab === 'User' ? '#2980b9' : '#7f8c8d', borderBottom: activeTab === 'User' ? '3px solid #2980b9' : 'none' }}
         >
-          Khách hàng (Customers)
+          Khách hàng 
         </button>
       </div>
 
@@ -192,7 +192,7 @@ function UserList() {
               </div>
 
               {/* CHỈ HIỂN THỊ CHỌN ROLE NẾU ĐANG Ở TAB NỘI BỘ HOẶC SỬA NHÂN VIÊN */}
-              {formData.role !== 'Customer' && (
+              {formData.role !== 'User' && (
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>Phân quyền (Role)</label>
                   <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc' }}>
