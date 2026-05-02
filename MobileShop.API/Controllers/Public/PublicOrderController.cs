@@ -38,7 +38,6 @@ namespace MobileShop.API.Controllers.Public
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto request)
         {
-            // 1. Đọc Token xem ông nào đang mua hàng
             var username = User.Identity?.Name;
             var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
 
@@ -47,54 +46,72 @@ namespace MobileShop.API.Controllers.Public
                 return BadRequest("Giỏ hàng trống!");
             }
 
-            // 2. Tính tổng tiền
             decimal totalAmount = request.OrderItems.Sum(i => i.UnitPrice * i.Quantity);
 
-            // 3. Tạo Đơn hàng mới lưu vào bảng Orders
-            var newOrder = new Order
+            // BẮT ĐẦU TRANSACTION TẠI ĐÂY
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            
+            try
             {
-                CustomerName = request.CustomerName,
-                PhoneNumber = request.PhoneNumber,
-                Address = request.Address,
-                PaymentMethod = request.PaymentMethod,
-                ShippingMethod = "Delivery",
-                TotalAmount = totalAmount,
-                Status = 0, // Mặc định: Chờ xác nhận
-                CreatedAt = DateTime.UtcNow,
-                UserId = currentUser?.Id // Lưu vết UserID để sau này khách xem lại "Lịch sử mua hàng"
-            };
-
-            _context.Orders.Add(newOrder);
-            await _context.SaveChangesAsync(); // Lưu để sinh ra OrderId tự động
-
-            // 4. Lưu từng món hàng vào bảng OrderItems và Trừ Tồn Kho
-            foreach (var item in request.OrderItems)
-            {
-                var orderItem = new OrderItem
+                // 1. Tạo vỏ đơn hàng
+                var newOrder = new Order
                 {
-                    OrderId = newOrder.Id,
-                    VariantId = item.VariantId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice
+                    CustomerName = request.CustomerName,
+                    PhoneNumber = request.PhoneNumber,
+                    Address = request.Address,
+                    PaymentMethod = request.PaymentMethod,
+                    ShippingMethod = "Delivery",
+                    TotalAmount = totalAmount,
+                    Status = 0, 
+                    CreatedAt = DateTime.UtcNow,
+                    UserId = currentUser?.Id 
                 };
-                _context.OrderItems.Add(orderItem);
 
-                // TRỪ TỒN KHO 
-                var variant = await _context.ProductVariants.FindAsync(item.VariantId);
-                if (variant != null)
+                _context.Orders.Add(newOrder);
+                await _context.SaveChangesAsync(); // Vẫn lưu để lấy ID, nhưng DB sẽ "giữ chỗ" chờ lệnh Commit
+
+                // 2. Lưu từng món hàng và Trừ kho (Đã tích hợp đoạn code vá lỗi thông minh)
+                foreach (var item in request.OrderItems)
                 {
-                    // Tránh trường hợp kho bị âm (thực tế nên kiểm tra trước khi tạo đơn)
+                    var variant = await _context.ProductVariants.FindAsync(item.VariantId);
+                    if (variant == null)
+                    {
+                        variant = await _context.ProductVariants.FirstOrDefaultAsync(v => v.ProductId == item.VariantId);
+                    }
+
+                    if (variant == null) 
+                    {
+                        throw new Exception($"Không tìm thấy cấu hình hợp lệ cho mã sản phẩm: {item.VariantId}");
+                    }
+
+                    var orderItem = new OrderItem
+                    {
+                        OrderId = newOrder.Id,
+                        VariantId = variant.Id,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice
+                    };
+                    _context.OrderItems.Add(orderItem);
+
                     if (variant.StockQuantity >= item.Quantity)
                         variant.StockQuantity -= item.Quantity;
                     else
                         variant.StockQuantity = 0; 
                 }
+
+                await _context.SaveChangesAsync();
+
+                // NẾU MỌI THỨ SUÔN SẺ TỚI TẬN ĐÂY -> CHỐT SỔ XUỐNG DATABASE!
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Đặt hàng thành công!", orderId = newOrder.Id });
             }
-
-            // 5. Lưu toàn bộ chi tiết và cập nhật kho vào DB
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Đặt hàng thành công!", orderId = newOrder.Id });
+            catch (Exception ex)
+            {
+                // NẾU CÓ LỖI XẢY RA Ở BẤT CỨ ĐÂU -> QUAY XE! (Hủy bỏ toàn bộ, không lưu vỏ đơn rác)
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { Message = "Lỗi khi tạo đơn hàng: " + ex.Message });
+            }
         }
     }
 }
