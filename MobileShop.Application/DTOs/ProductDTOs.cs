@@ -5,6 +5,7 @@ namespace MobileShop.API.DTOs
     // DTO cho Biến thể (Màu, Dung lượng, Giá riêng)
     public class VariantCreateDto
     {
+        public int Id { get; set; }
         public string? Color { get; set; }
         public string? Storage { get; set; }
         public decimal Price { get; set; }

@@ -8,7 +8,7 @@ function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-
+  const [selectedVariant, setSelectedVariant] = useState(null);
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -23,7 +23,11 @@ function ProductDetail() {
 
     fetchProduct();
   }, [id]);
-
+  useEffect(() => {
+    if (product && product.variants && product.variants.length > 0) {
+      setSelectedVariant(product.variants[0]); // Chỉnh mặc định là màu đầu tiên
+    }
+  }, [product]);
   // HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG THẬT (ĐÃ CÓ KIỂM TRA ĐĂNG NHẬP)
   const handleAddToCart = () => {
     // --- KIỂM TRA ĐĂNG NHẬP ---
@@ -47,12 +51,12 @@ function ProductDetail() {
     } else {
       // Nếu chưa có, tạo mới với số lượng khách chọn
       cart.push({ 
-        id: product.id, 
-        name: product.name, 
-        price: product.basePrice || product.price || 0, 
-        imageUrl: product.imageUrl 
-              || (product.images && product.images.length > 0 ? product.images[0] : null) 
-              || (product.variants && product.variants.length > 0 ? product.variants[0].imageUrl : null),
+        id: selectedVariant.id, 
+        productId: product.id,
+        name: `${product.name} (${selectedVariant.color} - ${selectedVariant.storage})`,
+        price: selectedVariant.price,
+        stockQuantity: selectedVariant.stockQuantity,
+        imageUrl: selectedVariant.imageUrl || (product.images?.length > 0 ? product.images[0] : null),
         quantity: quantity 
       });
     }

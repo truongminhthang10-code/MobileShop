@@ -16,11 +16,12 @@ namespace MobileShop.API.Controllers.Auth
     {
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
-
-        public AuthController(IConfiguration configuration, ApplicationDbContext context)
+        private readonly IWebHostEnvironment _env;
+        public AuthController(IConfiguration configuration, ApplicationDbContext context, IWebHostEnvironment env)
         {
             _configuration = configuration;
             _context = context;
+            _env = env;
         }
 
         public class LoginRequest
@@ -112,6 +113,7 @@ namespace MobileShop.API.Controllers.Auth
         [HttpPost("setup-admin")]
         public async Task<IActionResult> SetupAdmin()
         {
+            if (!_env.IsDevelopment()) return NotFound();
             if (await _context.Users.AnyAsync()) 
             {
                 return BadRequest("Hệ thống đã có tài khoản, không thể chạy lệnh này nữa.");

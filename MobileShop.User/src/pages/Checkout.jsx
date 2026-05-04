@@ -33,6 +33,13 @@ function Checkout() {
   // HÀM XỬ LÝ ĐẶT HÀNG (TRÙM CUỐI)
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
+    // 1. KIỂM TRA VÉ TRƯỚC KHI GỌI API
+    const token = localStorage.getItem('user_token');
+    if (!token) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục mua sắm!");
+        navigate('/login'); // Đá văng ra trang đăng nhập
+        return; // Dừng lại, không chạy xuống đoạn axios.post nữa
+    }
     
     // 1. Chuẩn bị cục dữ liệu (Payload) chuẩn để gửi cho Backend
     const orderPayload = {
@@ -45,7 +52,6 @@ function Checkout() {
       OrderItems: cartItems.map(item => ({
         VariantId: item.id, // (Lưu ý: Bạn nhắc Backend dùng ID biến thể nhé)
         Quantity: item.quantity,
-        UnitPrice: item.price
       }))
     };
 

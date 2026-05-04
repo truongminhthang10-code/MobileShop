@@ -122,6 +122,7 @@ function ProductEdit() {
       basePrice: parseFloat(basePrice),
       images: uploadedImages, 
       variants: variants.map(v => ({
+        id: v.id ? parseInt(v.id) : 0,
         color: v.color,
         storage: v.storage,
         price: parseFloat(v.price),

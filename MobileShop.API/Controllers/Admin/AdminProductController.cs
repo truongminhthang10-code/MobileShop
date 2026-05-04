@@ -126,10 +126,46 @@ namespace MobileShop.API.Controllers.Admin
             product.Description = dto.Description;
 
             // Xóa cũ thêm mới
-            _context.ProductVariants.RemoveRange(product.Variants);
+            
             _context.Specifications.RemoveRange(product.Specifications);
             _context.ProductImages.RemoveRange(product.Images); // XÓA ẢNH CŨ TRONG DB
 
+            // -- BẮT ĐẦU LOGIC UPSERT CHO VARIANTS --
+            var incomingIds = dto.Variants
+                .Where(v => v.Id > 0)
+                .Select(v => v.Id)
+                .ToList();
+
+            // Lọc ra những Variant bị xóa (Không có ID trong danh sách gửi lên)
+            var toDelete = product.Variants
+                .Where(v => !incomingIds.Contains(v.Id))
+                .ToList();
+            _context.ProductVariants.RemoveRange(toDelete);
+
+            foreach (var vDto in dto.Variants)
+            {
+                var existing = product.Variants.FirstOrDefault(v => v.Id == vDto.Id);
+                if (existing != null)
+                {
+                    existing.Color = vDto.Color;
+                    existing.Storage = vDto.Storage;
+                    existing.Price = vDto.Price;
+                    existing.StockQuantity = vDto.StockQuantity;
+                    existing.ImageUrl = vDto.ImageUrl;
+                }
+                else
+                {
+                    product.Variants.Add(new ProductVariant
+                    {
+                        Color = vDto.Color,
+                        Storage = vDto.Storage,
+                        Price = vDto.Price,
+                        StockQuantity = vDto.StockQuantity,
+                        ImageUrl = vDto.ImageUrl
+                    });
+                }
+            }
+            
             product.Variants = dto.Variants.Select(v => new ProductVariant
             {
                 Color = v.Color,

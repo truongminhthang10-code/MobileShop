@@ -79,6 +79,9 @@ namespace MobileShop.API.Controllers.Admin
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] int newStatus)
         {
+            if (newStatus < 0 || newStatus > 4)
+                return BadRequest("Trạng thái không hợp lệ!");
+            
             var order = await _context.Orders.FindAsync(id);
             if (order == null) return NotFound("Không tìm thấy đơn hàng.");
 
@@ -145,24 +148,34 @@ namespace MobileShop.API.Controllers.Admin
             // Kiểm tra logic nghiệp vụ
             if (order.Status == 4) return BadRequest("Đơn hàng này đã bị hủy từ trước.");
             if (order.Status == 3) return BadRequest("Đơn hàng đã giao hoàn thành, không thể hủy.");
-
-            // Bắt đầu vòng lặp: Hoàn lại số lượng tồn kho cho từng món hàng
-            foreach (var item in order.OrderItems)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var variant = await _context.ProductVariants.FindAsync(item.VariantId);
-                if (variant != null)
+                // Bắt đầu vòng lặp: Hoàn lại số lượng tồn kho cho từng món hàng
+                foreach (var item in order.OrderItems)
                 {
-                    variant.StockQuantity += item.Quantity; // Cộng số lượng khách đã đặt về lại kho
+                    var variant = await _context.ProductVariants.FindAsync(item.VariantId);
+                    if (variant != null)
+                    {
+                        variant.StockQuantity += item.Quantity; // Cộng số lượng khách đã đặt về lại kho
+                    }
                 }
+
+                // Cập nhật trạng thái thành 4 (Đã hủy)
+                order.Status = 4;
+                
+                // Lưu một lần duy nhất cho toàn bộ thay đổi (Status + Kho)
+                await _context.SaveChangesAsync(); 
+                await transaction.CommitAsync();
+                return Ok(new { message = "Hủy đơn hàng và hoàn kho thành công!" });
             }
-
-            // Cập nhật trạng thái thành 4 (Đã hủy)
-            order.Status = 4;
+            catch (Exception ex)
+            {
+                // Nếu có lỗi gì đó xảy ra, rollback về trạng thái trước khi bắt đầu transaction
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { message = "Lỗi khi hủy đơn: " + ex.Message });
+            }
             
-            // Lưu một lần duy nhất cho toàn bộ thay đổi (Status + Kho)
-            await _context.SaveChangesAsync(); 
-
-            return Ok(new { message = "Hủy đơn hàng và hoàn kho thành công!" });
         }
     }
 }

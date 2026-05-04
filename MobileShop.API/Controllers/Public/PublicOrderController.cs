@@ -46,7 +46,7 @@ namespace MobileShop.API.Controllers.Public
                 return BadRequest("Giỏ hàng trống!");
             }
 
-            decimal totalAmount = request.OrderItems.Sum(i => i.UnitPrice * i.Quantity);
+            
 
             // BẮT ĐẦU TRANSACTION TẠI ĐÂY
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -61,14 +61,16 @@ namespace MobileShop.API.Controllers.Public
                     Address = request.Address,
                     PaymentMethod = request.PaymentMethod,
                     ShippingMethod = "Delivery",
-                    TotalAmount = totalAmount,
+                    TotalAmount = 0,
                     Status = 0, 
                     CreatedAt = DateTime.UtcNow,
                     UserId = currentUser?.Id 
                 };
 
                 _context.Orders.Add(newOrder);
-                await _context.SaveChangesAsync(); // Vẫn lưu để lấy ID, nhưng DB sẽ "giữ chỗ" chờ lệnh Commit
+                await _context.SaveChangesAsync(); // Giữ lại để lấy OrderId
+
+                decimal totalAmount = 0;
 
                 // 2. Lưu từng món hàng và Trừ kho (Đã tích hợp đoạn code vá lỗi thông minh)
                 foreach (var item in request.OrderItems)
@@ -76,12 +78,13 @@ namespace MobileShop.API.Controllers.Public
                     var variant = await _context.ProductVariants.FindAsync(item.VariantId);
                     if (variant == null)
                     {
-                        variant = await _context.ProductVariants.FirstOrDefaultAsync(v => v.ProductId == item.VariantId);
+                       throw new Exception($"Không tìm thấy cấu hình hợp lệ cho mã sản phẩm: {item.VariantId}");
                     }
 
-                    if (variant == null) 
+                    // KIỂM TRA TỒN KHO TRƯỚC (Phát hiện lỗi Race Condition cơ bản)
+                    if (variant.StockQuantity < item.Quantity)
                     {
-                        throw new Exception($"Không tìm thấy cấu hình hợp lệ cho mã sản phẩm: {item.VariantId}");
+                        throw new Exception($"Cấu hình {variant.Color} {variant.Storage} đã hết hàng hoặc không đủ số lượng!");
                     }
 
                     var orderItem = new OrderItem
@@ -89,16 +92,17 @@ namespace MobileShop.API.Controllers.Public
                         OrderId = newOrder.Id,
                         VariantId = variant.Id,
                         Quantity = item.Quantity,
-                        UnitPrice = item.UnitPrice
+                        UnitPrice = variant.Price       //lỗi logic ở đây, ko check với database, có thể bị khách ảo giá (0 đ) qua f12, nên siết lại bằng cách kiểm tra với giá gốc trong database, sử dụng variant.Price
                     };
                     _context.OrderItems.Add(orderItem);
 
-                    if (variant.StockQuantity >= item.Quantity)
-                        variant.StockQuantity -= item.Quantity;
-                    else
-                        variant.StockQuantity = 0; 
+                    // Cập nhật tồn kho (đã đảm bảo đủ số lượng ở bước check phía trên)
+                    variant.StockQuantity -= item.Quantity;
+                    // Tính lũy kế tổng tiền của đơn hàng
+                    totalAmount += (variant.Price * item.Quantity);
                 }
-
+                // Cập nhật lại tổng tiền (TotalAmount) đúng thực tế
+                newOrder.TotalAmount = totalAmount;
                 await _context.SaveChangesAsync();
 
                 // NẾU MỌI THỨ SUÔN SẺ TỚI TẬN ĐÂY -> CHỐT SỔ XUỐNG DATABASE!

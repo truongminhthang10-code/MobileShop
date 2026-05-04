@@ -11,6 +11,7 @@ namespace MobileShop.Domain.Entities
         public string Name { get; set; } = string.Empty;
 
         public string? Description { get; set; }
+        [MaxLength(500)]
         public string? LogoUrl { get; set; }
 
         public bool IsDeleted { get; set; } = false;

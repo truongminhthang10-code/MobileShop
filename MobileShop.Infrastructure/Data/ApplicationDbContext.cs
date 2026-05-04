@@ -28,6 +28,26 @@ namespace MobileShop.Infrastructure.Data
                 // Đánh Index cho cột CreatedAt (Để sắp xếp ngày tháng nhanh hơn)
                 modelBuilder.Entity<Order>()
                     .HasIndex(o => o.CreatedAt);
+                // THÊM: Ngăn chặn một User tạo ra nhiều Cart với cùng một Variant
+                modelBuilder.Entity<Cart>()
+                    .HasIndex(c => new { c.UserId, c.VariantId })
+                    .IsUnique();
+
+                // THÊM: Ngăn chặn tạo User trùng tên đăng nhập
+                modelBuilder.Entity<User>()
+                    .HasIndex(u => u.Username)
+                    .IsUnique();
+                    
+                // THÊM: Index cho các trường thường xuyên tìm kiếm
+                modelBuilder.Entity<Product>().HasIndex(p => p.Name);
+                modelBuilder.Entity<User>().HasIndex(u => u.Email);
+
+                // QUAN TRỌNG: Ngăn chặn xóa Variant (cấu hình) nếu nó đã từng nằm trong một Đơn Hàng (Bảo vệ dữ liệu kế toán)
+                // modelBuilder.Entity<OrderItem>()
+                //     .HasOne(oi => oi.Variant)
+                //     .WithMany(v => v.OrderItems)
+                //     .HasForeignKey(oi => oi.VariantId)
+                //     .OnDelete(DeleteBehavior.Restrict); // Đổi từ Cascade thành Restrict
             }
         
     }

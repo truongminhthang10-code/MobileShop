@@ -24,7 +24,8 @@ namespace MobileShop.API.Controllers.Admin
             {
                 return BadRequest("Vui lòng chọn một file ảnh.");
             }
-
+            if (file.Length > 5 * 1024 * 1024) 
+                return BadRequest("File không được vượt quá 5MB!");
             // Kiểm tra định dạng file (Chỉ cho phép ảnh)
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
             var extension = Path.GetExtension(file.FileName).ToLower();

@@ -14,7 +14,14 @@ function Cart() {
   const updateQuantity = (id, amount) => {
     const updatedCart = cartItems.map(item => {
       if (item.id === id) {
-        const newQuantity = Math.max(1, item.quantity + amount);
+        const newQuantity = item.quantity + amount;
+
+        // THÊM: không cho vượt tồn kho nếu có, không cho xuống dưới 1
+        if (newQuantity < 1) return item;
+        if (item.stockQuantity && newQuantity > item.stockQuantity) {
+            alert(`Chỉ còn ${item.stockQuantity} sản phẩm trong kho!`);
+            return item;
+        }
         return { ...item, quantity: newQuantity };
       }
       return item;
