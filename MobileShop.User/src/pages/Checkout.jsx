@@ -59,8 +59,6 @@ function Checkout() {
     console.log("DỮ LIỆU ĐƠN HÀNG CHUẨN BỊ GỬI:", orderPayload);
 
     try {
-      // 2. GỌI API (Đang bị comment lại vì Backend chưa có hàm này)
-      // Khi nào Backend có API, bạn mở comment 2 dòng dưới đây ra và thay đường dẫn
       
       await axios.post('http://localhost:5293/api/public/orders', orderPayload, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('user_token')}` }

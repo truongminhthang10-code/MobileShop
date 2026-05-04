@@ -40,7 +40,7 @@ function ProductDetail() {
     // --------------------------
 
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
-    const existingItem = cart.find(item => item.id === product.id);
+    const existingItem = cart.find(item => item.id === selectedVariant.id);
     
     // Lấy ảnh chuẩn: ưu tiên mảng images từ API của bạn
     const finalImage = product.imageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
@@ -117,7 +117,13 @@ function ProductDetail() {
               style={{ width: '50px', textAlign: 'center', border: 'none', borderLeft: '1px solid #ccc', borderRight: '1px solid #ccc', fontSize: '16px' }} 
             />
             <button 
-              onClick={() => setQuantity(q => q + 1)}
+              onClick={() => setQuantity(q => {
+                  if (selectedVariant && q >= selectedVariant.stockQuantity) {
+                      alert(`Chỉ còn ${selectedVariant.stockQuantity} sản phẩm trong kho!`);
+                      return q;
+                  }
+                  return q + 1;
+              })}
               style={{ padding: '10px 15px', backgroundColor: '#fff', border: 'none', cursor: 'pointer', fontSize: '16px' }}
             >+</button>
           </div>

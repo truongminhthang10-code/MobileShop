@@ -165,15 +165,8 @@ namespace MobileShop.API.Controllers.Admin
                     });
                 }
             }
+
             
-            product.Variants = dto.Variants.Select(v => new ProductVariant
-            {
-                Color = v.Color,
-                Storage = v.Storage,
-                Price = v.Price,
-                StockQuantity = v.StockQuantity,
-                ImageUrl = v.ImageUrl
-            }).ToList();
 
             if (dto.Specifications != null)
             {
